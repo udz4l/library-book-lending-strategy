@@ -2,19 +2,37 @@ package library.client;
 
 import library.facade.LendingFacade;
 import library.facade.LibraryAdminFacade;
+import library.strategy.fine.FineCalculationRequest;
+import library.strategy.fine.FineCalculationSelector;
+import library.strategy.recommendation.BookInfo;
+import library.strategy.recommendation.RecommendationRequest;
+import library.strategy.recommendation.BookRecommendationSelector;
+import library.strategy.recommendation.BookRecommendationService;
+import library.strategy.recommendation.RecommendationMode;
 
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Scanner;
 
 public class LibraryMenu {
     private final LendingFacade lendingFacade;
     private final LibraryAdminFacade adminFacade;
+    private final BookRecommendationService recommendationService;
+    private final BookRecommendationSelector recommendationSelector;
+    private final FineCalculationSelector fineSelector;
     private final Scanner scanner = new Scanner(System.in);
 
     public LibraryMenu(
             LendingFacade lendingFacade,
-            LibraryAdminFacade adminFacade) {
+            LibraryAdminFacade adminFacade,
+            BookRecommendationService recommendationService,
+            BookRecommendationSelector recommendationSelector,
+            FineCalculationSelector fineSelector) {
         this.lendingFacade = lendingFacade;
         this.adminFacade = adminFacade;
+        this.recommendationService = recommendationService;
+        this.recommendationSelector = recommendationSelector;
+        this.fineSelector = fineSelector;
     }
 
     public void start() {
@@ -29,6 +47,7 @@ public class LibraryMenu {
                     3. Demo C failure (confirmation fails)
                     4. Show saved data
                     5. Recover unfinished workflows
+                    6. Demo Strategy pattern
                     0. Exit
                     """);
 
@@ -45,6 +64,7 @@ public class LibraryMenu {
                         adminFacade.recoverAfterRestart();
                         System.out.println("Recovery finished.");
                     }
+                    case "6" -> demonstrateStrategies();
                     case "0" -> running = false;
                     default -> System.out.println("Please choose a listed option.");
                 }
@@ -73,5 +93,54 @@ public class LibraryMenu {
         );
 
         System.out.println("Loan completed. Workflow ID: " + workflow.getId());
+    }
+
+    private void demonstrateStrategies() {
+        List<BookInfo> books = List.of(
+                new BookInfo("b1", "Java Basics", "A. Teacher", 250, 15),
+                new BookInfo("b2", "Clean Code", "R. Martin", 460, 80),
+                new BookInfo("b3", "Refactoring", "M. Fowler", 380, 40)
+        );
+
+        var recommendationRequest = new RecommendationRequest(
+                books,
+                "M. Fowler",
+                true
+        );
+
+        System.out.println("\nBook recommendation strategies:");
+        for (RecommendationMode mode : RecommendationMode.values()) {
+            BookInfo result = recommendationService.recommend(
+                    mode,
+                    recommendationRequest
+            );
+            System.out.println(mode + ": " + result.title());
+        }
+
+        System.out.println("Automatic recommendation: "
+                + recommendationSelector.select(recommendationRequest)
+                .recommend(recommendationRequest).title());
+
+        var fineRequest = new FineCalculationRequest(
+                LocalDate.of(2026, 10, 12),
+                LocalDate.of(2026, 10, 20),
+                100.0
+        );
+
+        System.out.println("\nFine calculation strategies:");
+        System.out.println("Daily fine: "
+                + fineSelector.select(new FineCalculationRequest(
+                fineRequest.dueDate(),
+                fineRequest.dueDate(),
+                fineRequest.dailyRate()
+        )).calculate(fineRequest));
+        System.out.println("Grace period fine: "
+                + fineSelector.select(new FineCalculationRequest(
+                fineRequest.dueDate(),
+                fineRequest.dueDate().plusDays(2),
+                fineRequest.dailyRate()
+        )).calculate(fineRequest));
+        System.out.println("Open days fine: "
+                + fineSelector.select(fineRequest).calculate(fineRequest));
     }
 }

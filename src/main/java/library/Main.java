@@ -11,6 +11,8 @@ import library.reservation.ReservationRepository;
 import library.reservation.ReservationService;
 import library.storage.JsonFileStore;
 import library.workflow.WorkflowRepository;
+import library.strategy.fine.*;
+import library.strategy.recommendation.*;
 
 public class Main {
     public static void main(String[] args) {
@@ -52,7 +54,20 @@ public class Main {
 
         adminFacade.recoverAfterRestart();
 
-        LibraryMenu menu = new LibraryMenu(lendingFacade, adminFacade);
+        BookRecommendationService recommendationService =
+                new BookRecommendationService();
+        BookRecommendationSelector recommendationSelector =
+                new BookRecommendationSelector();
+        FineCalculationSelector fineSelector =
+                new FineCalculationSelector();
+
+        LibraryMenu menu = new LibraryMenu(
+                lendingFacade,
+                adminFacade,
+                recommendationService,
+                recommendationSelector,
+                fineSelector
+        );
         menu.start();
     }
 }
