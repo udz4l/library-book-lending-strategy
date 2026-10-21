@@ -18,11 +18,4 @@ public class BookRecommendationContext {
     public BookInfo recommend(RecommendationRequest request) {
         return strategy.recommend(request);
     }
-
-    public BookInfo recommendAutomatically(
-            RecommendationRequest request,
-            BookRecommendationSelector selector) {
-        setStrategy(selector.select(request));
-        return recommend(request);
-    }
 }

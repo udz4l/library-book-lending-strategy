@@ -96,14 +96,13 @@ class BookRecommendationStrategyTest {
     }
 
     @Test
-    void contextCanSelectAndApplyStrategyAutomatically() {
+    void contextCanApplyStrategySelectedAutomatically() {
+        BookRecommendationSelector selector = new BookRecommendationSelector();
         BookRecommendationContext context =
                 new BookRecommendationContext(new MostPopularStrategy());
 
-        BookInfo result = context.recommendAutomatically(
-                request,
-                new BookRecommendationSelector()
-        );
+        context.setStrategy(selector.select(request));
+        BookInfo result = context.recommend(request);
 
         assertEquals("b1", result.id());
         assertInstanceOf(ShortestBookStrategy.class, context.getStrategy());

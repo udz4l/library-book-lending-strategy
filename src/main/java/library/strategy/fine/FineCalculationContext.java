@@ -18,11 +18,4 @@ public class FineCalculationContext {
     public double calculate(FineCalculationRequest request) {
         return strategy.calculate(request);
     }
-
-    public double calculateAutomatically(
-            FineCalculationRequest request,
-            FineCalculationSelector selector) {
-        setStrategy(selector.select(request));
-        return calculate(request);
-    }
 }

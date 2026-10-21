@@ -1,5 +1,13 @@
 package library.client;
 
+import library.strategy.fine.DailyFineStrategy;
+import library.strategy.fine.FineCalculationContext;
+import library.strategy.fine.GracePeriodFineStrategy;
+import library.strategy.fine.OpenDaysFineStrategy;
+import library.strategy.fine.WeekdayLibraryCalendar;
+import library.strategy.recommendation.BookRecommendationContext;
+import library.strategy.recommendation.MostPopularStrategy;
+import library.strategy.recommendation.ShortestBookStrategy;
 import library.facade.LendingFacade;
 import library.facade.LibraryAdminFacade;
 import library.strategy.fine.FineCalculationRequest;
@@ -108,18 +116,32 @@ public class LibraryMenu {
                 true
         );
 
-        System.out.println("\nBook recommendation strategies:");
+        System.out.println("\nBook recommendation strategies, same request:");
         for (RecommendationMode mode : RecommendationMode.values()) {
-            BookInfo result = recommendationService.recommend(
-                    mode,
-                    recommendationRequest
-            );
+            BookInfo result =
+                    recommendationService.recommend(mode, recommendationRequest);
             System.out.println(mode + ": " + result.title());
         }
 
-        System.out.println("Automatic recommendation: "
-                + recommendationSelector.select(recommendationRequest)
-                .recommend(recommendationRequest).title());
+        BookRecommendationContext recommendationContext =
+                new BookRecommendationContext(new MostPopularStrategy());
+
+        System.out.println("Before runtime switch: "
+                + recommendationContext.recommend(recommendationRequest).title());
+
+        recommendationContext.setStrategy(new ShortestBookStrategy());
+
+        System.out.println("After runtime switch: "
+                + recommendationContext.recommend(recommendationRequest).title());
+
+        recommendationContext.setStrategy(
+                recommendationSelector.select(recommendationRequest)
+        );
+
+        System.out.println("Automatic strategy: "
+                + recommendationContext.getStrategy().getClass().getSimpleName());
+        System.out.println("Automatic result: "
+                + recommendationContext.recommend(recommendationRequest).title());
 
         var fineRequest = new FineCalculationRequest(
                 LocalDate.of(2026, 10, 12),
@@ -127,20 +149,23 @@ public class LibraryMenu {
                 100.0
         );
 
-        System.out.println("\nFine calculation strategies:");
-        System.out.println("Daily fine: "
-                + fineSelector.select(new FineCalculationRequest(
-                fineRequest.dueDate(),
-                fineRequest.dueDate(),
-                fineRequest.dailyRate()
-        )).calculate(fineRequest));
-        System.out.println("Grace period fine: "
-                + fineSelector.select(new FineCalculationRequest(
-                fineRequest.dueDate(),
-                fineRequest.dueDate().plusDays(2),
-                fineRequest.dailyRate()
-        )).calculate(fineRequest));
-        System.out.println("Open days fine: "
-                + fineSelector.select(fineRequest).calculate(fineRequest));
+        FineCalculationContext fineContext =
+                new FineCalculationContext(new DailyFineStrategy());
+
+        System.out.println("\nFine calculation strategies, same request:");
+        System.out.println("Daily fine: " + fineContext.calculate(fineRequest));
+
+        fineContext.setStrategy(new GracePeriodFineStrategy());
+        System.out.println("Grace period fine: " + fineContext.calculate(fineRequest));
+
+        fineContext.setStrategy(
+                new OpenDaysFineStrategy(new WeekdayLibraryCalendar())
+        );
+        System.out.println("Open days fine: " + fineContext.calculate(fineRequest));
+
+        fineContext.setStrategy(fineSelector.select(fineRequest));
+        System.out.println("Automatic strategy: "
+                + fineContext.getStrategy().getClass().getSimpleName());
+        System.out.println("Automatic fine: " + fineContext.calculate(fineRequest));
     }
 }
